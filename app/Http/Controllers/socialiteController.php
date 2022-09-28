@@ -12,7 +12,10 @@ use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\RegistersUsers;
 
 use Illuminate\Support\Facades\Validator;
-
+use App\Mail\TestMail;
+use Illuminate\Support\Facades\Mail;
+use App\Jobs\TestEmailJob;
+use Illuminate\Bus\Queueable;
 class socialiteController extends Controller
 {
 
@@ -53,12 +56,13 @@ class socialiteController extends Controller
          * @parameters	Illuminate\Http\Request $request;
          * @return   View home
          */
-        $user = Socialite::driver('google')->user();
+        // $user = Socialite::driver('google')->user();
+        $user = Socialite::driver('google')->stateless()->user();
         // dd($user);
         // dd($user->name);
         $slug = $user->avatar;
 
-    $data = User::updateOrCreate([
+    $data = ([
         'name' =>$user->name,
         'email' => $user->email,
         'image' => $slug,
@@ -66,6 +70,11 @@ class socialiteController extends Controller
         'provider' =>'google',
         'password' =>Hash::make('12345678'),
        ]);
+        // User::updateOrCreate($data);
+        TestEmailJob::dispatch($data)->onQueue('email');
+
+        // Mail::to($data['email'])->send(new TestMail($data));
+
        return view('auth/login');
     }
 
